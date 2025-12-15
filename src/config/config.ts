@@ -78,6 +78,17 @@ export type TelegramConfig = {
   webhookPath?: string;
 };
 
+export type DiscordConfig = {
+  token?: string;
+  clientId?: string;
+  publicKey?: string | string[];
+  baseUrl?: string;
+  deploySecret?: string;
+  allowFrom?: Array<string | number>;
+  requireMention?: boolean;
+  mediaMaxMb?: number;
+};
+
 export type GroupChatConfig = {
   requireMention?: boolean;
   mentionPatterns?: string[];
@@ -133,6 +144,7 @@ export type ClawdisConfig = {
   };
   web?: WebConfig;
   telegram?: TelegramConfig;
+  discord?: DiscordConfig;
   webchat?: WebChatConfig;
   cron?: CronConfig;
 };
@@ -301,6 +313,18 @@ const ClawdisSchema = z.object({
       webhookUrl: z.string().optional(),
       webhookSecret: z.string().optional(),
       webhookPath: z.string().optional(),
+    })
+    .optional(),
+  discord: z
+    .object({
+      token: z.string().optional(),
+      clientId: z.string().optional(),
+      publicKey: z.union([z.string(), z.array(z.string())]).optional(),
+      baseUrl: z.string().optional(),
+      deploySecret: z.string().optional(),
+      allowFrom: z.array(z.union([z.string(), z.number()])).optional(),
+      requireMention: z.boolean().optional(),
+      mediaMaxMb: z.number().positive().optional(),
     })
     .optional(),
 });

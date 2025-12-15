@@ -21,7 +21,7 @@ export type SessionEntry = {
   totalTokens?: number;
   model?: string;
   contextTokens?: number;
-  lastChannel?: "whatsapp" | "telegram" | "webchat";
+  lastChannel?: "whatsapp" | "telegram" | "discord" | "webchat";
   lastTo?: string;
   // Optional flag to mirror Mac app UI and future sync states.
   syncing?: boolean | string;

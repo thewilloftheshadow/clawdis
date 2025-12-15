@@ -1,4 +1,4 @@
-# 🦞 CLAWDIS — WhatsApp & Telegram Gateway for AI Agents
+# 🦞 CLAWDIS — WhatsApp, Telegram & Discord Gateway for AI Agents
 
 <p align="center">
   <img src="docs/whatsapp-clawd.jpg" alt="CLAWDIS" width="400">
@@ -14,11 +14,11 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="MIT License"></a>
 </p>
 
-**CLAWDIS** is a TypeScript/Node gateway that bridges WhatsApp (Web/Baileys) and Telegram (Bot API/grammY) to a local coding agent (**Pi**).
+**CLAWDIS** is a TypeScript/Node gateway that bridges WhatsApp (Web/Baileys), Telegram (Bot API/grammY), and Discord (Bot API/discord.js) to a local coding agent (**Pi**).
 It’s like having a genius lobster in your pocket 24/7 — but with a real control plane, companion apps, and a network model that won’t corrupt sessions.
 
 ```
-WhatsApp / Telegram
+WhatsApp / Telegram / Discord
         │
         ▼
   ┌──────────────────────────┐
@@ -43,6 +43,7 @@ Because every space lobster needs a time-and-space machine. The Doctor has a TAR
 
 - 📱 **WhatsApp Integration** — Personal WhatsApp Web (Baileys)
 - ✈️ **Telegram (Bot API)** — DMs and groups via grammY
+- 🎮 **Discord (Bot API)** — DMs and guild channels via discord.js
 - 🛰️ **Gateway control plane** — One long-lived gateway owns provider state; clients connect over WebSocket
 - 🤖 **Agent runtime** — Pi only (Pi CLI in RPC mode), with tool streaming
 - 💬 **Sessions** — Direct chats collapse into `main` by default; groups are isolated
@@ -88,7 +89,7 @@ pnpm clawdis gateway --port 18789 --verbose
 # Send a WhatsApp message (WhatsApp sends go through the Gateway)
 pnpm clawdis send --to +1234567890 --message "Hello from the CLAWDIS!"
 
-# Talk to the agent (optionally deliver back to WhatsApp/Telegram)
+# Talk to the agent (optionally deliver back to WhatsApp/Telegram/Discord)
 pnpm clawdis agent --message "Ship checklist" --thinking high
 
 # If the port is busy, force-kill listeners then start
@@ -110,9 +111,10 @@ Voice Wake sends messages into the `main` session and replies on the **last used
 
 - WhatsApp: last direct message you sent/received.
 - Telegram: last DM chat id (bot mode).
+- Discord: last DM (user) or guild/channel (channel:<id>) target.
 - WebChat: last WebChat thread you used.
 
-If delivery fails (e.g. WhatsApp disconnected / Telegram token missing), Clawdis logs the error and you can still inspect the run via WebChat/session logs.
+If delivery fails (e.g. WhatsApp disconnected / Telegram/Discord token missing), Clawdis logs the error and you can still inspect the run via WebChat/session logs.
 
 Build/run the mac app with `./scripts/restart-mac.sh` (packages, installs, and launches), or `swift build --package-path apps/macos && open dist/Clawdis.app`.
 
@@ -161,6 +163,7 @@ Optional: enable/configure clawd’s dedicated browser control (defaults are alr
 - [Troubleshooting](./docs/troubleshooting.md)
 - [The Lore](./docs/lore.md) 🦞
 - [Telegram (Bot API)](./docs/telegram.md)
+- [Discord (Bot API)](./docs/discord.md)
 - [iOS node runbook (Iris)](./docs/ios/connect.md)
 - [macOS app spec](./docs/clawdis-mac.md)
 
@@ -186,13 +189,16 @@ clawdis gateway    # run Gateway (WS on 127.0.0.1:18789)
 ### Telegram (Bot API)
 Bot-mode support (grammY only) shares the same `main` session as WhatsApp/WebChat, with groups kept isolated. Text/media sends work via `clawdis send --provider telegram` (reads `TELEGRAM_BOT_TOKEN` or `telegram.botToken`). Webhook mode is supported; see `docs/telegram.md` for setup and limits.
 
+### Discord (Bot API)
+Enable Discord by creating a bot in the [Developer Portal](https://discord.com/developers/applications), inviting it to the servers you want to use, and setting `DISCORD_BOT_TOKEN` (or `discord.token` in `~/.clawdis/clawdis.json`). Use `clawdis send --provider discord --to channel:<channelId>` for guild channels or `user:<userId>`/`@username` for DMs. Allowlist DM senders via `discord.allowFrom`, and adjust mention gating with `discord.requireMention`. See `docs/discord.md` for details.
+
 ## Commands
 
 | Command | Description |
 |---------|-------------|
 | `clawdis login` | Link WhatsApp Web via QR |
-| `clawdis send` | Send a message (WhatsApp default; `--provider telegram` for bot mode). WhatsApp sends go via the Gateway WS; Telegram sends are direct. |
-| `clawdis agent` | Talk directly to the agent (no WhatsApp send) |
+| `clawdis send` | Send a message (WhatsApp default; `--provider telegram|discord` for bots). WhatsApp sends go via the Gateway WS; Telegram/Discord sends are direct. |
+| `clawdis agent` | Talk directly to the agent (optionally deliver back via WhatsApp/Telegram/Discord). |
 | `clawdis browser ...` | Manage clawd’s dedicated browser (status/tabs/open/screenshot). |
 | `clawdis gateway` | Start the Gateway server (WS control plane). Params: `--port`, `--token`, `--force`, `--verbose`. |
 | `clawdis gateway health|status|send|agent|call` | Gateway WS clients; assume a running gateway. |

@@ -154,6 +154,23 @@ Defaults:
 }
 ```
 
+### `discord` (bot transport)
+
+Configure the Discord bot by setting the bot token and optional gating:
+
+```json5
+{
+  discord: {
+    token: "Bot <token>",
+    allowFrom: ["discord:1234567890", "*"], // optional DM allowlist (user ids)
+    requireMention: true,                   // require @bot mentions in guilds
+    mediaMaxMb: 8                           // clamp inbound media size
+  }
+}
+```
+
+Clawdis reads `DISCORD_BOT_TOKEN` or `discord.token` to start the provider. Use `user:<id>` (DM) or `channel:<id>` (guild channel) when specifying delivery targets for cron/CLI commands.
+
 ## Template variables
 
 Template placeholders are expanded in `inbound.reply.command`, `sessionIntro`, `bodyPrefix`, and other templated strings.

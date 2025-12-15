@@ -75,6 +75,7 @@ import {
 import { setCommandLaneConcurrency } from "../process/command-queue.js";
 import { monitorWebProvider, webAuthExists } from "../providers/web/index.js";
 import { defaultRuntime } from "../runtime.js";
+import { monitorDiscordProvider, sendMessageDiscord } from "../discord/index.js";
 import { monitorTelegramProvider } from "../telegram/monitor.js";
 import { sendMessageTelegram } from "../telegram/send.js";
 import { normalizeE164 } from "../utils.js";
@@ -606,6 +607,8 @@ export async function startGatewayServer(
     const cfg = loadConfig();
     const telegramToken =
       process.env.TELEGRAM_BOT_TOKEN ?? cfg.telegram?.botToken ?? "";
+    const discordToken =
+      process.env.DISCORD_BOT_TOKEN ?? cfg.discord?.token ?? "";
 
     if (await webAuthExists()) {
       defaultRuntime.log("gateway: starting WhatsApp Web provider");
@@ -643,6 +646,26 @@ export async function startGatewayServer(
     } else {
       defaultRuntime.log(
         "gateway: skipping Telegram provider (no TELEGRAM_BOT_TOKEN/config)",
+      );
+    }
+
+    if (discordToken.trim().length > 0) {
+      defaultRuntime.log("gateway: starting Discord provider");
+      providerTasks.push(
+        monitorDiscordProvider({
+          token: discordToken.trim(),
+          runtime: defaultRuntime,
+          abortSignal: providerAbort.signal,
+          allowFrom: cfg.discord?.allowFrom,
+          requireMention: cfg.discord?.requireMention,
+          mediaMaxMb: cfg.discord?.mediaMaxMb,
+        }).catch((err) =>
+          logError(`discord provider exited: ${formatError(err)}`),
+        ),
+      );
+    } else {
+      defaultRuntime.log(
+        "gateway: skipping Discord provider (no DISCORD_BOT_TOKEN/config)",
       );
     }
   };
@@ -1120,7 +1143,9 @@ export async function startGatewayServer(
           typeof link?.channel === "string" ? link.channel.trim() : "";
         const channel = channelRaw.toLowerCase();
         const provider =
-          channel === "whatsapp" || channel === "telegram"
+          channel === "whatsapp" ||
+          channel === "telegram" ||
+          channel === "discord"
             ? channel
             : undefined;
         const to =
@@ -2715,6 +2740,23 @@ export async function startGatewayServer(
                   payload,
                 });
                 respond(true, payload, undefined, { provider });
+              } else if (provider === "discord") {
+                const result = await sendMessageDiscord(to, message, {
+                  mediaUrl: params.mediaUrl,
+                  token: process.env.DISCORD_BOT_TOKEN,
+                });
+                const payload = {
+                  runId: idem,
+                  messageId: result.messageId,
+                  channelId: result.channelId,
+                  provider,
+                };
+                dedupe.set(`send:${idem}`, {
+                  ts: Date.now(),
+                  ok: true,
+                  payload,
+                });
+                respond(true, payload, undefined, { provider });
               } else {
                 const result = await sendMessageWhatsApp(to, message, {
                   mediaUrl: params.mediaUrl,
@@ -2845,6 +2887,7 @@ export async function startGatewayServer(
               if (
                 requestedChannel === "whatsapp" ||
                 requestedChannel === "telegram" ||
+                requestedChannel === "discord" ||
                 requestedChannel === "webchat"
               ) {
                 return requestedChannel;
@@ -2862,7 +2905,8 @@ export async function startGatewayServer(
               if (explicit) return explicit;
               if (
                 resolvedChannel === "whatsapp" ||
-                resolvedChannel === "telegram"
+                resolvedChannel === "telegram" ||
+                resolvedChannel === "discord"
               ) {
                 return lastTo || undefined;
               }

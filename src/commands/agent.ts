@@ -384,6 +384,7 @@ export async function agentCommand(
 
   const whatsappTarget = opts.to ? normalizeE164(opts.to) : allowFrom[0];
   const telegramTarget = opts.to?.trim() || undefined;
+  const discordTarget = opts.to?.trim() || undefined;
 
   const logDeliveryError = (err: unknown) => {
     const message = `Delivery failed (${provider}): ${String(err)}`;
@@ -414,9 +415,17 @@ export async function agentCommand(
     if (
       provider !== "whatsapp" &&
       provider !== "telegram" &&
+      provider !== "discord" &&
       provider !== "webchat"
     ) {
       const err = new Error(`Unknown provider: ${provider}`);
+      if (!bestEffortDeliver) throw err;
+      logDeliveryError(err);
+    }
+    if (provider === "discord" && !discordTarget) {
+      const err = new Error(
+        "Delivering to Discord requires --to <channelId|user:ID|channel:ID>",
+      );
       if (!bestEffortDeliver) throw err;
       logDeliveryError(err);
     }
@@ -502,6 +511,30 @@ export async function agentCommand(
             first = false;
             await deps.sendMessageTelegram(telegramTarget, caption, {
               verbose: false,
+              mediaUrl: url,
+            });
+          }
+        }
+      } catch (err) {
+        if (!bestEffortDeliver) throw err;
+        logDeliveryError(err);
+      }
+      continue;
+    }
+
+    if (provider === "discord" && discordTarget) {
+      try {
+        if (media.length === 0) {
+          await deps.sendMessageDiscord(discordTarget, text, {
+            token: process.env.DISCORD_BOT_TOKEN,
+          });
+        } else {
+          let first = true;
+          for (const url of media) {
+            const caption = first ? text : "";
+            first = false;
+            await deps.sendMessageDiscord(discordTarget, caption, {
+              token: process.env.DISCORD_BOT_TOKEN,
               mediaUrl: url,
             });
           }

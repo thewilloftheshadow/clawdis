@@ -804,6 +804,7 @@ struct CronJobEditor: View {
                             Text("last").tag("last")
                             Text("whatsapp").tag("whatsapp")
                             Text("telegram").tag("telegram")
+                            Text("discord").tag("discord")
                         }
                         .labelsHidden()
                         .pickerStyle(.segmented)
